@@ -1,0 +1,59 @@
+name: Main workflow
+on:
+  push:
+    branches:
+    - master
+    - release/*
+    - "*"
+  pull_request:
+jobs:
+  lint:
+    name: make lint
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+      fail-fast: true
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Set up Python 3
+      uses: actions/setup-python@v1
+      with:
+        python-version: "3.7"
+      id: python
+    - name: Checkout source code
+      uses: actions/checkout@v1
+    - name: Prepare pipenv
+      uses: dschep/install-pipenv-action@v1
+    - name: Run lint tools
+      run: |
+        pipenv install --dev
+        pipenv run make lint
+  unittest:
+    name: make test
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+      fail-fast: true
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Set up Python 3
+      uses: actions/setup-python@v1
+      with:
+        python-version: "3.7"
+      id: python
+    - name: Checkout source code
+      uses: actions/checkout@v1
+    - name: Prepare pipenv
+      uses: dschep/install-pipenv-action@v1
+    - name: Run unittest
+      run: |
+        pipenv install --dev
+        pipenv run make test
+    - name: Prepare coverage token # https://github.com/codecov/codecov-action/issues/29
+      if: success() && github.repository == 'algorithm101/pyrithm'
+      run: cp .github/codecov-upstream.yml .codecov.yml
+    - name: Upload Coverage report to CodeCov
+      uses: codecov/codecov-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: ./pkg/coverage.xml
